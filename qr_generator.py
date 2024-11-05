@@ -5,17 +5,22 @@ import vobject
 
 def generate_qr_code():
     # Получаем данные из полей ввода
-    employee_name = name_entry.get()
-    phone = phone_entry.get()
-    email = email_entry.get()
-    street = street_entry.get()
-    city = city_entry.get()
-    region = region_entry.get()
-    code = postal_code_entry.get()
-    country = country_entry.get()
-    title = title_entry.get()
-    url = url_entry.get()
-    note = note_entry.get()
+    employee_name = name_entry.get().strip()
+    phone = phone_entry.get().strip()
+    email = email_entry.get().strip()
+    street = street_entry.get().strip()
+    city = city_entry.get().strip()
+    region = region_entry.get().strip()
+    code = postal_code_entry.get().strip()
+    country = country_entry.get().strip()
+    title = title_entry.get().strip()
+    url = url_entry.get().strip()
+    note = note_entry.get().strip()
+
+    # Проверка на пустые поля
+    if not employee_name or not phone or not email:
+        messagebox.showerror("Ошибка", "Пожалуйста, заполните обязательные поля (ФИО, телефон, email).")
+        return
 
     # Создаем vCard для сотрудника
     vcard = vobject.vCard()
@@ -38,9 +43,12 @@ def generate_qr_code():
 
     # Генерация QR-кода
     qr = qrcode.QRCode(
-        version=2,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_L if error_correction_var.get() == 'L' else
+                         qrcode.constants.ERROR_CORRECT_M if error_correction_var.get() == 'M' else
+                         qrcode.constants.ERROR_CORRECT_Q if error_correction_var.get() == 'Q' else
+                         qrcode.constants.ERROR_CORRECT_H,
+        box_size=size_var.get(),
         border=4,
     )
     qr.add_data(vcard_data)
@@ -49,12 +57,18 @@ def generate_qr_code():
     # Создание и сохранение изображения QR-кода
     img = qr.make_image(fill_color="black", back_color="white")
 
-    # Формируем имя файла на основе имени сотрудника
-    file_name = f"{employee_name.replace(' ', '_')}.png"
-    img.save(file_name)
+    # Формируем имя файла на основе имени сотрудника и формата
+    file_name = f"{employee_name.replace(' ', '_')}.{format_var.get().lower()}"
+    img.save(file_name, format=format_var.get())
 
     # Уведомление о сохранении
     messagebox.showinfo("Успех", f"QR-код сохранен как {file_name}")
+
+    # Отображение превью QR-кода
+    img.thumbnail((100, 100))  # Измените размер для превью
+    img_preview = tk.PhotoImage(img)  # Это может потребовать конвертации
+    qr_preview.config(image=img_preview)
+    qr_preview.image = img_preview  # Сохраните ссылку на изображение
 
 # Создание основного окна
 root = tk.Tk()
@@ -104,6 +118,22 @@ url_entry.grid(row=9, column=1)
 tk.Label(root, text="Примечание:").grid(row=10, column=0)
 note_entry = tk.Entry(root)
 note_entry.grid(row=10, column=1)
+
+# Добавляем выбор формата изображения
+tk.Label(root, text="Формат изображения:").grid(row=12, column=0)
+format_var = tk.StringVar(value='PNG')
+format_menu = tk.OptionMenu(root, format_var, 'PNG', 'JPEG')
+format_menu.grid(row=12, column=1)
+
+# Добавляем размер QR-кода
+tk.Label(root, text="Размер QR-кода:").grid(row=14, column=0)
+size_var = tk.IntVar(value=10)  # По умолчанию размер 10
+size_entry = tk.Entry(root, textvariable=size_var)
+size_entry.grid(row=14, column=1)
+
+# Создание элемента для отображения QR-кода
+qr_preview = tk.Label(root)
+qr_preview.grid(row=15, columnspan=2)
 
 # Кнопка для генерации QR-кода
 generate_button = tk.Button(root, text="Сгенерировать QR-код", command=generate_qr_code)
